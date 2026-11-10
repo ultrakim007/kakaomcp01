@@ -25,15 +25,15 @@ const MIME_TYPES = {
 };
 
 /**
- * Create the HTTP server for the Kakao Map 30-Minute Health Course web app.
+ * Create the Node (req, res) request handler for both local HTTP and Vercel runtime.
  */
-export function createAppServer({
+export function createRequestHandler({
   publicDir = path.join(__dirname, "public"),
   getApiKey = () => (process.env.KAKAO_REST_API_KEY || "").trim(),
 } = {}) {
   const resolvedPublicDir = path.resolve(publicDir);
 
-  return http.createServer(async (req, res) => {
+  return async (req, res) => {
     try {
       const requestUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
       const pathname = requestUrl.pathname;
@@ -82,8 +82,18 @@ export function createAppServer({
         error: err.message || "서버 처리 중 문제가 발생했습니다.",
       });
     }
-  });
+  };
 }
+
+/**
+ * Create the HTTP server for the Kakao Map 30-Minute Health Course web app.
+ */
+export function createAppServer(options) {
+  return http.createServer(createRequestHandler(options));
+}
+
+const defaultHandler = createRequestHandler();
+export default defaultHandler;
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   loadEnvFile(path.join(__dirname, ".env"));
