@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>오늘의 30분 건강 산책·자전거 코스 메이커</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand">
+          <span class="brand-badge" aria-hidden="true">🌿</span>
+          <div>
+            <h1 class="brand-title">오늘의 30분 건강 코스</h1>
+            <p class="brand-sub">산책길과 자전거길을 큰 글씨로 쉽게 비교해 보세요</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span id="modeBadge" class="status-pill status-demo" aria-live="polite">
+            확인 중...
+          </span>
+          <button
+            type="button"
+            id="fontSizeToggle"
+            class="btn btn-outline btn-compact"
+            aria-pressed="false"
+          >
+            🔍 글씨 더 크게
+          </button>
+          <button type="button" id="openGuideBtn" class="btn btn-outline btn-compact">
+            💡 연결 안내
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container main-layout">
+      <!-- 왼쪽: 코스 입력 패널 -->
+      <section class="panel input-panel" aria-label="출발지와 도착지 입력">
+        <div class="panel-header">
+          <h2>1. 어디서 어디로 갈까요?</h2>
+          <p class="helper-text">
+            예시 코스를 누르거나, 가고 싶은 장소를 직접 검색해 보세요.
+          </p>
+        </div>
+
+        <div class="preset-section">
+          <span class="field-label">인기 추천 코스 바로 선택</span>
+          <div id="presetList" class="preset-chips" role="group" aria-label="인기 추천 코스"></div>
+        </div>
+
+        <form id="courseForm" class="course-form" novalidate>
+          <!-- 출발지 -->
+          <div class="place-field">
+            <label for="startInput" class="field-label">
+              <span class="dot dot-start" aria-hidden="true"></span> 출발지
+            </label>
+            <div class="input-row">
+              <input
+                id="startInput"
+                type="text"
+                class="text-input"
+                placeholder="예: 잠실역, 판교역, 우리 동네 공원"
+                autocomplete="off"
+              />
+              <button type="button" id="startSearchBtn" class="btn btn-secondary">
+                찾기
+              </button>
+            </div>
+            <p id="startSelectedInfo" class="selected-place-tag"></p>
+            <ul id="startResults" class="search-dropdown hidden" role="listbox" aria-label="출발지 검색 결과"></ul>
+          </div>
+
+          <div class="swap-row">
+            <button type="button" id="swapBtn" class="btn btn-ghost">
+              ⇅ 출발지 · 도착지 바꾸기
+            </button>
+          </div>
+
+          <!-- 도착지 -->
+          <div class="place-field">
+            <label for="endInput" class="field-label">
+              <span class="dot dot-end" aria-hidden="true"></span> 도착지
+            </label>
+            <div class="input-row">
+              <input
+                id="endInput"
+                type="text"
+                class="text-input"
+                placeholder="예: 올림픽공원, 탄천, 한강공원"
+                autocomplete="off"
+              />
+              <button type="button" id="endSearchBtn" class="btn btn-secondary">
+                찾기
+              </button>
+            </div>
+            <p id="endSelectedInfo" class="selected-place-tag"></p>
+            <ul id="endResults" class="search-dropdown hidden" role="listbox" aria-label="도착지 검색 결과"></ul>
+          </div>
+
+          <!-- 경로 옵션 -->
+          <div class="options-grid">
+            <div class="option-box">
+              <label for="walkModeSelect" class="field-label">🚶 산책 길 스타일</label>
+              <select id="walkModeSelect" class="select-input">
+                <option value="ACCESSIBLE">편안한 길 (계단·경사 최소화)</option>
+                <option value="BROAD_FIRST">넓은 길 우선 (보도 위주)</option>
+                <option value="SHORTEST">제일 빠른 길 (최단 거리)</option>
+              </select>
+            </div>
+            <div class="option-box">
+              <label for="bikeModeSelect" class="field-label">🚲 자전거 길 스타일</label>
+              <select id="bikeModeSelect" class="select-input">
+                <option value="BIKE_ONLY">자전거도로 우선 (안전 추천)</option>
+                <option value="ACCESSIBLE">편안한 길</option>
+                <option value="SHORTEST">제일 빠른 길</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" id="findCourseBtn" class="btn btn-primary btn-block">
+            ✨ 30분 건강 코스 만들기
+          </button>
+        </form>
+      </section>
+
+      <!-- 오른쪽: 결과 패널 -->
+      <section class="panel result-panel" aria-label="건강 코스 결과" aria-live="polite">
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon" aria-hidden="true">🚶‍♀️🚲</div>
+          <h2>코스를 아직 고르지 않았어요</h2>
+          <p>
+            왼쪽에서 <strong>인기 추천 코스</strong>를 누르거나<br />
+            출발지·도착지를 입력해 주세요!
+          </p>
+        </div>
+
+        <div id="loadingState" class="loading-state hidden">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>카카오맵에서 가장 좋은 산책·자전거 길을 찾고 있어요...</p>
+        </div>
+
+        <div id="errorState" class="error-box hidden" role="alert"></div>
+
+        <div id="resultContent" class="result-content hidden">
+          <!-- 상단 요약 배너 -->
+          <div class="route-title-bar">
+            <div>
+              <span class="route-pill">오늘의 코스</span>
+              <h2 id="routePairTitle" class="route-pair-title">출발지 → 도착지</h2>
+            </div>
+            <div class="action-buttons">
+              <button type="button" id="speakBtn" class="btn btn-outline">
+                🔊 소리로 듣기
+              </button>
+              <button type="button" id="copyShareBtn" class="btn btn-outline">
+                📋 카톡 공유용 복사
+              </button>
+            </div>
+          </div>
+
+          <!-- 모드 전환 탭 -->
+          <div class="view-tabs" role="tablist" aria-label="이동 수단 보기 선택">
+            <button
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-tab="walk"
+              class="tab-btn active"
+            >
+              🚶 걸어서 가기
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-tab="bike"
+              class="tab-btn"
+            >
+              🚲 자전거로 가기
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-tab="compare"
+              class="tab-btn"
+            >
+              ⚖️ 둘 다 비교하기
+            </button>
+          </div>
+
+          <!-- 단일 모드 상세 (도보 또는 자전거) -->
+          <div id="singleModeView">
+            <div class="health-card">
+              <div class="health-card-top">
+                <div>
+                  <span id="healthBadge" class="health-tag">도보 산책</span>
+                  <h3 id="healthGoalText" class="health-goal-text">오늘의 30분 건강 목표에 딱 맞아요!</h3>
+                </div>
+                <div class="big-time">
+                  <strong id="mainMinutes">28</strong><span>분</span>
+                </div>
+              </div>
+
+              <div class="progress-wrap" aria-label="30분 건강 목표 달성률">
+                <div class="progress-label-row">
+                  <span>하루 권장 30분 운동 목표</span>
+                  <strong id="goalPercentText">93%</strong>
+                </div>
+                <div class="progress-track">
+                  <div id="goalProgressBar" class="progress-fill" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <div class="metrics-grid">
+                <div class="metric-item">
+                  <span class="metric-label">총 거리</span>
+                  <strong id="metricDistance" class="metric-value">1.90 km</strong>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label" id="metricThirdLabel">예상 걸음 수</span>
+                  <strong id="metricThirdValue" class="metric-value">2,639 걸음</strong>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">예상 칼로리</span>
+                  <strong id="metricKcal" class="metric-value">106 kcal</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- 지도 미리보기 + 카카오맵 열기 -->
+            <div class="map-card">
+              <div class="map-header">
+                <h3>📍 코스 지도 미리보기</h3>
+                <a
+                  id="kakaoMapLink"
+                  href="https://map.kakao.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-kakao"
+                >
+                  🗺️ 카카오맵으로 길안내 시작
+                </a>
+              </div>
+              <div class="map-frame">
+                <img
+                  id="staticMapImg"
+                  src=""
+                  alt="출발지와 도착지가 표시된 코스 지도"
+                  class="static-map-img"
+                />
+              </div>
+            </div>
+
+            <!-- 단계별 큰 글씨 길안내 -->
+            <div class="steps-card">
+              <h3>📋 순서대로 따라가는 큰 글씨 길안내</h3>
+              <ol id="stepsList" class="steps-list"></ol>
+            </div>
+          </div>
+
+          <!-- 비교 모드 뷰 -->
+          <div id="compareModeView" class="compare-grid hidden">
+            <article class="compare-card compare-walk">
+              <div class="compare-head">
+                <span class="compare-icon" aria-hidden="true">🚶</span>
+                <h3>걸어서 산책 코스</h3>
+              </div>
+              <p class="compare-time"><strong id="cmpWalkMin">-</strong>분</p>
+              <ul class="compare-details">
+                <li>거리: <strong id="cmpWalkDist">-</strong></li>
+                <li>예상 걸음: <strong id="cmpWalkSteps">-</strong></li>
+                <li>소모 열량: <strong id="cmpWalkKcal">-</strong></li>
+                <li>목표 달성: <strong id="cmpWalkGoal">-</strong></li>
+              </ul>
+              <a
+                id="cmpWalkLink"
+                href="https://map.kakao.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-primary btn-block"
+              >
+                🚶 도보 길안내 열기
+              </a>
+            </article>
+
+            <article class="compare-card compare-bike">
+              <div class="compare-head">
+                <span class="compare-icon" aria-hidden="true">🚲</span>
+                <h3>자전거 라이딩 코스</h3>
+              </div>
+              <p class="compare-time"><strong id="cmpBikeMin">-</strong>분</p>
+              <ul class="compare-details">
+                <li>거리: <strong id="cmpBikeDist">-</strong></li>
+                <li>이동 특징: <strong>자전거도로 위주</strong></li>
+                <li>소모 열량: <strong id="cmpBikeKcal">-</strong></li>
+                <li>목표 달성: <strong id="cmpBikeGoal">-</strong></li>
+              </ul>
+              <a
+                id="cmpBikeLink"
+                href="https://map.kakao.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-bike btn-block"
+              >
+                🚲 자전거 길안내 열기
+              </a>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 연결 안내 모달 -->
+    <div id="guideModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="guideModalTitle">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2 id="guideModalTitle">💡 카카오맵 API & PlayMCP 연결 방법</h2>
+          <button type="button" id="closeGuideBtn" class="btn btn-ghost" aria-label="안내 닫기">✕ 닫기</button>
+        </div>
+        <div class="modal-body">
+          <p>지금 API 키가 없어도 <strong>체험 모드</strong>로 모든 화면을 써볼 수 있어요! 실제 전국 지도를 붙이려면 아래 3단계만 따라 하세요.</p>
+          <ol class="guide-steps">
+            <li>
+              <strong>카카오 디벨로퍼스</strong>(<a href="https://developers.kakao.com/" target="_blank" rel="noopener noreferrer">developers.kakao.com</a>)에서 내 앱을 만들고, <strong>[제품 설정] → [카카오맵] → [사용 설정]</strong>을 켜주세요.
+            </li>
+            <li>
+              <strong>[앱 키]</strong> 메뉴에서 <code>REST API 키</code>를 복사한 뒤, 프로젝트 폴더의 <code>.env</code> 파일에 <code>KAKAO_REST_API_KEY=복사한키</code>로 저장하세요.
+            </li>
+            <li>
+              서버를 다시 시작하면 자동으로 <strong>실시간 카카오맵 모드</strong>로 바뀝니다!
+            </li>
+          </ol>
+          <div class="playmcp-box">
+            <h3>🤖 PlayMCP 카카오맵 AI 채팅에서도 이렇게 물어보세요!</h3>
+            <p class="helper-text">
+              <a href="https://playmcp.kakao.com/mcp/3" target="_blank" rel="noopener noreferrer">playmcp.kakao.com/mcp/3</a> 에서 아래 문장을 그대로 복사해 써보실 수 있어요:
+            </p>
+            <code class="prompt-sample">“잠실역에서 올림픽공원 평화의광장까지 걸어서 가는 추천 코스랑 자전거 코스 비교해서 알려줘!”</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

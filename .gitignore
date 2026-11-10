@@ -1,0 +1,6 @@
+node_modules/
+.env
+.vercel/
+.gstack/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+{
+  "name": "kakaomap-health-route",
+  "version": "1.0.0",
+  "description": "오늘의 30분 건강 산책·자전거 코스 메이커 (PlayMCP & 카카오맵 REST API 기반 시니어 친화 반응형 웹앱)",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/api.test.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
